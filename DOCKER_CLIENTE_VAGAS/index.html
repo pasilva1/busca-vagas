@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buscas de vagas</title>
+<style>
+  :root {
+    --paper: #f3efe6;
+    --ink: #1d1a16;
+    --muted: #6d645b;
+    --line: #ddd4c6;
+    --card: #fffdf8;
+    --green: #0e6b52;
+    --green-soft: #e5f4ee;
+    --copper: #8d3d22;
+    --copper-soft: #f8ebe4;
+    --shadow: 0 16px 40px rgba(60, 42, 20, 0.08);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 400px at 10% -10%, #efe4cf 0%, transparent 55%),
+      var(--paper);
+    font-family: "Segoe UI", Candara, sans-serif;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: end;
+    padding: 28px 32px 8px;
+  }
+  h1 {
+    margin: 0;
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 40px;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
+  h2, h3 { font-family: Georgia, "Iowan Old Style", serif; letter-spacing: -0.03em; }
+  h2 { margin: 0; font-size: 28px; }
+  h3 { margin: 0; font-size: 20px; }
+  header p, .help, .muted { color: var(--muted); }
+  header p { margin: 6px 0 0; }
+  .status { font-size: 13px; color: var(--muted); text-align: right; }
+  .status b.ok { color: var(--green); }
+  .status b.erro { color: var(--copper); }
+  main {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 22px;
+    padding: 18px 32px 48px;
+    align-items: start;
+  }
+  .panel, .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+  }
+  .panel { padding: 16px; display: grid; gap: 14px; }
+  form, .stack { display: grid; gap: 10px; }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  input, select, button { font: inherit; color: var(--ink); }
+  input, select {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 10px;
+    padding: 9px 10px;
+  }
+  input:focus, select:focus, button:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 1px;
+  }
+  button, a.button {
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 14px;
+    cursor: pointer;
+    background: var(--ink);
+    color: white;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  button.secondary, a.secondary {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  button.copper { background: var(--copper); }
+  button:disabled { opacity: 0.55; cursor: wait; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .check {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .check input { width: auto; }
+  .sites { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .escolha { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .escolha legend { font-size: 13px; color: var(--muted); padding: 0; }
+  .opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .opcao {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 12px 10px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .opcao input { width: auto; margin: 0; }
+  .opcao:has(input:checked) {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .help { margin: 0; font-size: 13px; line-height: 1.4; }
+  .aviso {
+    display: none;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--copper-soft);
+    color: var(--copper);
+    font-size: 14px;
+  }
+  .aviso.mostrar { display: block; }
+  .bloco { display: grid; gap: 12px; }
+  .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: end; }
+  .filters, .filters.vagas { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+  .campo-extra { display: grid; grid-template-columns: 180px 1fr; gap: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 650; }
+  tr.selecionada { background: #f8f3ea; }
+  .wrap { overflow-x: auto; }
+  .badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 12px;
+    background: #f6f1e8;
+    color: var(--muted);
+  }
+  .badge.ok { background: var(--green-soft); color: var(--green); }
+  .badge.erro, .badge.remote { background: var(--copper-soft); color: var(--copper); }
+  .badge.remote.sim { background: var(--green-soft); color: var(--green); }
+  .acoes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .acoes button, .acoes a { padding: 6px 10px; font-size: 13px; }
+  .empty { margin: 0; color: var(--muted); }
+  .detalhe { display: grid; gap: 8px; padding-top: 8px; }
+  .detalhe dl { display: grid; grid-template-columns: 180px 1fr; gap: 6px 10px; margin: 0; }
+  .detalhe dt { color: var(--muted); font-size: 12px; }
+  .detalhe dd { margin: 0; white-space: pre-wrap; }
+  .contagem { font-size: 13px; color: var(--muted); }
+  @media (max-width: 980px) {
+    header, main { padding-left: 14px; padding-right: 14px; }
+    header { align-items: start; flex-direction: column; }
+    h1 { font-size: 32px; }
+    main { grid-template-columns: 1fr; }
+    .status { text-align: left; }
+    .campo-extra { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Buscas de vagas</h1>
+    <p>Informe o IP e a porta do JobSpy. Esta página grava a busca e o container da API consulta os sites.</p>
+  </div>
+  <p class="status" id="status-api">Conferindo a API de vagas…</p>
+</header>
+<main>
+  <section class="panel">
+    <form id="form-conexao">
+      <h2>Conexão com o JobSpy</h2>
+      <p class="help">Use o IP da máquina onde a API está publicada. Dentro do container, localhost é o próprio cliente.</p>
+      <label>IP ou host
+        <input id="jobspy-host" required placeholder="192.168.1.8" autocomplete="off">
+      </label>
+      <label>Porta
+        <input id="jobspy-port" required type="number" min="1" max="65535" placeholder="4000">
+      </label>
+      <button id="salvar-conexao" type="submit">Salvar IP e porta</button>
+      <p class="help" id="conexao-atual"></p>
+    </form>
+    <div class="toolbar">
+      <h2 id="titulo-form">Nova busca</h2>
+    </div>
+    <p class="help" id="ajuda-form">Escolha remoto sim ou não e, se quiser, o estado. A cidade é opcional.</p>
+    <p class="aviso" id="aviso" role="status"></p>
+    <form id="form-busca">
+      <label>Cargo ou tecnologia
+        <input id="keywords" required placeholder="Python Developer">
+      </label>
+      <fieldset class="escolha">
+        <legend>Remoto</legend>
+        <div class="opcoes">
+          <label class="opcao"><input type="radio" name="remoto" value="nao" checked> Não</label>
+          <label class="opcao"><input type="radio" name="remoto" value="sim"> Sim</label>
+        </div>
+      </fieldset>
+      <label>Estado
+        <select id="estado">
+          <option value="">Qualquer estado</option>
+        </select>
+      </label>
+      <label>Cidade
+        <input id="cidade" placeholder="Recife, ou deixe em branco">
+      </label>
+      <p class="help" id="preview-local"></p>
+      <div>
+        <span class="muted">Sites</span>
+        <div class="sites" id="sites"></div>
+      </div>
+      <label class="check"><input id="somente_linkedin" type="checkbox"> Somente LinkedIn</label>
+      <label>Quantidade por site
+        <input id="results" type="number" min="1" max="100" value="10">
+      </label>
+      <label>Publicadas nas últimas horas
+        <input id="hours_old" type="number" min="1" placeholder="72, ou vazio para sem este filtro">
+      </label>
+      <label>Tipo de vínculo
+        <select id="job_type">
+          <option value="">Sem filtro</option>
+          <option value="fulltime">Tempo integral</option>
+          <option value="parttime">Meio período</option>
+          <option value="contract">Contrato</option>
+          <option value="temporary">Temporário</option>
+          <option value="internship">Estágio</option>
+          <option value="perdiem">Diarista</option>
+          <option value="other">Outro</option>
+          <option value="volunteer">Voluntário</option>
+        </select>
+      </label>
+      <div class="row">
+        <button id="salvar" type="submit">Criar busca</button>
+        <button id="cancelar" class="secondary" type="button" hidden>Cancelar edição</button>
+      </div>
+    </form>
+  </section>
+  <section class="bloco">
+    <article class="card" style="padding: 16px; display: grid; gap: 12px;">
+      <div class="toolbar">
+        <h2>Buscas gravadas</h2>
+        <span class="contagem" id="contagem-buscas"></span>
+      </div>
+      <div class="filters">
+        <label>Filtrar em todos os campos
+          <input id="filtro-busca" placeholder="Cargo, local, site, erro, número…">
+        </label>
+        <label>Situação
+          <select id="filtro-situacao">
+            <option value="">Todas</option>
+            <option value="ok">Concluídas</option>
+            <option value="erro">Com erro</option>
+          </select>
+        </label>
+        <label>Remoto
+          <select id="filtro-remoto-busca">
+            <option value="">Todos</option>
+            <option value="sim">Remoto sim</option>
+            <option value="nao">Remoto não</option>
+          </select>
+        </label>
+        <label>Origem
+          <select id="filtro-origem">
+            <option value="">Todas</option>
+            <option value="linkedin">Só LinkedIn</option>
+            <option value="varios">Vários sites</option>
+          </select>
+        </label>
+      </div>
+      <div class="wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Busca</th>
+              <th>Vagas</th>
+              <th>Quando</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="lista"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="vazio-buscas" hidden>Nenhuma busca gravada. Use o formulário para consultar a API da porta 4000.</p>
+    </article>
+    <article class="card" id="painel-vagas" style="padding: 16px; display: grid; gap: 12px;" hidden>
+      <div class="toolbar">
+        <div>
+          <h2 id="titulo-vagas">Vagas</h2>
+          <p class="help" id="caminho-vagas"></p>
+        </div>
+        <span class="contagem" id="contagem-vagas"></span>
+      </div>
+      <div class="row" id="acoes-vagas"></div>
+      <div class="filters vagas">
+        <label>Filtrar em todos os campos da vaga
+          <input id="filtro-vaga" placeholder="Cargo, empresa, cidade, descrição, salário…">
+        </label>
+        <label>Site
+          <select id="filtro-site"><option value="">Todos</option></select>
+        </label>
+        <label>Tipo
+          <select id="filtro-tipo"><option value="">Todos</option></select>
+        </label>
+        <label>Remoto
+          <select id="filtro-remoto-vaga">
+            <option value="">Todos</option>
+            <option value="sim">Remotas</option>
+            <option value="nao">Não remotas</option>
+          </select>
+        </label>
+        <label>Salário
+          <select id="filtro-salario">
+            <option value="">Todos</option>
+            <option value="com">Com valor</option>
+            <option value="sem">Sem valor</option>
+          </select>
+        </label>
+      </div>
+      <div class="campo-extra">
+        <label>Campo específico
+          <select id="filtro-campo"><option value="">Qualquer campo acima</option></select>
+        </label>
+        <label>Valor desse campo
+          <input id="filtro-campo-valor" placeholder="Texto contido no campo escolhido">
+        </label>
+      </div>
+      <div class="wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Vaga</th>
+              <th>Empresa</th>
+              <th>Local</th>
+              <th>Site</th>
+              <th>Quando</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="vagas"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="vazio-vagas" hidden>Nenhuma vaga passa neste filtro.</p>
+    </article>
+  </section>
+</main>
+<script>
+const SITES = ["linkedin", "indeed", "glassdoor", "zip_recruiter", "bayt", "naukri", "bdjobs", "hellowork"];
+const ESTADOS = ["Acre", "Alagoas", "Amapá", "Amazonas", "Bahia", "Ceará", "Distrito Federal", "Espírito Santo", "Goiás", "Maranhão", "Mato Grosso", "Mato Grosso do Sul", "Minas Gerais", "Pará", "Paraíba", "Paraná", "Pernambuco", "Piauí", "Rio de Janeiro", "Rio Grande do Norte", "Rio Grande do Sul", "Rondônia", "Roraima", "Santa Catarina", "São Paulo", "Sergipe", "Tocantins"];
+const TIPOS = {
+  fulltime: "Tempo integral",
+  parttime: "Meio período",
+  contract: "Contrato",
+  temporary: "Temporário",
+  internship: "Estágio",
+  perdiem: "Diarista",
+  other: "Outro",
+  volunteer: "Voluntário"
+};
+const NOMES = {
+  site: "Site", title: "Cargo", company: "Empresa", location: "Local", date_posted: "Publicada em",
+  job_type: "Tipo", is_remote: "Remoto", job_url: "Link", job_url_direct: "Link direto",
+  min_amount: "Salário mínimo", max_amount: "Salário máximo", currency: "Moeda", interval: "Período",
+  emails: "E-mails", description: "Descrição", company_industry: "Setor", company_url: "Site da empresa",
+  skills: "Habilidades", job_level: "Nível", company_rating: "Nota da empresa"
+};
+
+let buscas = [];
+let aberta = null;
+let editandoId = null;
+
+const aviso = document.getElementById("aviso");
+const lista = document.getElementById("lista");
+const sitesBox = document.getElementById("sites");
+
+function el(tag, texto, classe) {
+  const node = document.createElement(tag);
+  if (classe) node.className = classe;
+  if (texto != null) node.textContent = texto;
+  return node;
+}
+
+function mostrarAviso(texto) {
+  aviso.textContent = texto || "";
+  aviso.classList.toggle("mostrar", Boolean(texto));
+}
+
+function detalheErro(data) {
+  if (!data) return "Falha na requisição.";
+  if (typeof data.detail === "string") return data.detail;
+  if (Array.isArray(data.detail)) return data.detail.map((item) => item.msg || JSON.stringify(item)).join(" ");
+  return "Falha na requisição.";
+}
+
+function dataCurta(valor) {
+  if (!valor) return "—";
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return String(valor);
+  return data.toLocaleString("pt-BR");
+}
+
+function textoDe(valor) {
+  if (valor == null) return "";
+  if (typeof valor === "object") return JSON.stringify(valor);
+  return String(valor);
+}
+
+function salario(vaga) {
+  if (vaga.min_amount == null && vaga.max_amount == null) return "";
+  const faixa = [vaga.min_amount, vaga.max_amount].filter((item) => item != null).join(" – ");
+  return [faixa, vaga.currency, vaga.interval].filter(Boolean).join(" ");
+}
+
+function pedidoTexto(busca) {
+  const pedido = busca.pedido || {};
+  return [
+    busca.id, busca.erro, busca.quantidade, pedido.keywords, pedido.location, pedido.sites,
+    pedido.job_type, pedido.results, pedido.hours_old, pedido.cidade, pedido.estado,
+    pedido.is_remote ? "remoto sim" : "remoto não",
+    pedido.somente_linkedin ? "linkedin" : ""
+  ].join(" ").toLowerCase();
+}
+
+function renderSites() {
+  SITES.forEach((site) => {
+    const label = el("label", null, "check");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.name = "site";
+    input.value = site;
+    input.checked = site === "linkedin" || site === "indeed";
+    label.append(input, document.createTextNode(site));
+    sitesBox.append(label);
+  });
+}
+
+function sitesMarcados() {
+  return [...document.querySelectorAll('input[name="site"]:checked')].map((input) => input.value);
+}
+
+function renderEstados() {
+  const select = document.getElementById("estado");
+  ESTADOS.forEach((nome) => {
+    const option = el("option", nome);
+    option.value = nome;
+    select.append(option);
+  });
+}
+
+function localEnviado(cidade, estado) {
+  const cidadeLimpa = (cidade || "").trim();
+  if (!estado) return cidadeLimpa || "Brasil";
+  if (!cidadeLimpa || cidadeLimpa.toLowerCase() === "brasil" || cidadeLimpa.toLowerCase() === "brazil") {
+    return `${estado}, Brasil`;
+  }
+  let base = cidadeLimpa.toLowerCase().includes(estado.toLowerCase()) ? cidadeLimpa : `${cidadeLimpa}, ${estado}`;
+  if (!base.toLowerCase().includes("brasil") && !base.toLowerCase().includes("brazil")) {
+    base = `${base}, Brasil`;
+  }
+  return base;
+}
+
+function atualizarPreview() {
+  const remoto = document.querySelector('input[name="remoto"]:checked').value;
+  const local = localEnviado(document.getElementById("cidade").value, document.getElementById("estado").value);
+  document.getElementById("preview-local").textContent = `A busca vai em ${local}. Remoto: ${remoto === "sim" ? "sim" : "não"}.`;
+}
+
+function lerPedido() {
+  const hours = document.getElementById("hours_old").value.trim();
+  const jobType = document.getElementById("job_type").value;
+  const cidade = document.getElementById("cidade").value.trim();
+  const estado = document.getElementById("estado").value;
+  return {
+    keywords: document.getElementById("keywords").value.trim(),
+    cidade,
+    estado: estado || null,
+    location: localEnviado(cidade, estado),
+    sites: sitesMarcados().join(","),
+    results: Number(document.getElementById("results").value || 10),
+    hours_old: hours ? Number(hours) : null,
+    job_type: jobType || null,
+    is_remote: document.querySelector('input[name="remoto"]:checked').value === "sim",
+    somente_linkedin: document.getElementById("somente_linkedin").checked
+  };
+}
+
+function aplicarPedido(pedido) {
+  const dados = pedido || {};
+  document.getElementById("keywords").value = dados.keywords || "";
+  if (dados.cidade != null || dados.estado) {
+    document.getElementById("cidade").value = dados.cidade || "";
+    document.getElementById("estado").value = dados.estado || "";
+  } else {
+    document.getElementById("cidade").value = dados.location && dados.location !== "Brasil" ? dados.location : "";
+    document.getElementById("estado").value = "";
+  }
+  document.getElementById("results").value = dados.results || 10;
+  document.getElementById("hours_old").value = dados.hours_old || "";
+  document.getElementById("job_type").value = dados.job_type || "";
+  document.querySelector(`input[name="remoto"][value="${dados.is_remote ? "sim" : "nao"}"]`).checked = true;
+  document.getElementById("somente_linkedin").checked = Boolean(dados.somente_linkedin);
+  const escolhidos = new Set(String(dados.sites || "linkedin,indeed").split(",").map((item) => item.trim()));
+  document.querySelectorAll('input[name="site"]').forEach((input) => {
+    input.checked = escolhidos.has(input.value);
+  });
+  sincronizarLinkedin();
+  atualizarPreview();
+}
+
+function sincronizarLinkedin() {
+  const soLinkedin = document.getElementById("somente_linkedin").checked;
+  document.querySelectorAll('input[name="site"]').forEach((input) => {
+    input.disabled = soLinkedin;
+  });
+  document.getElementById("job_type").disabled = soLinkedin;
+}
+
+function modoFormulario(id) {
+  editandoId = id;
+  document.getElementById("titulo-form").textContent = id ? `Editar busca ${id}` : "Nova busca";
+  document.getElementById("ajuda-form").textContent = id
+    ? "Atualizar consulta a API de novo e substitui as vagas desta busca."
+    : "Escolha remoto sim ou não e, se quiser, o estado. A cidade é opcional.";
+  document.getElementById("salvar").textContent = id ? "Atualizar busca" : "Criar busca";
+  document.getElementById("cancelar").hidden = !id;
+}
+
+function buscasVisiveis() {
+  const q = document.getElementById("filtro-busca").value.trim().toLowerCase();
+  const situacao = document.getElementById("filtro-situacao").value;
+  const remoto = document.getElementById("filtro-remoto-busca").value;
+  const origem = document.getElementById("filtro-origem").value;
+  return buscas.filter((busca) => {
+    if (q && !pedidoTexto(busca).includes(q)) return false;
+    if (situacao === "ok" && !busca.ok) return false;
+    if (situacao === "erro" && busca.ok) return false;
+    if (remoto === "sim" && !busca.is_remote) return false;
+    if (remoto === "nao" && busca.is_remote) return false;
+    if (origem === "linkedin" && !busca.somente_linkedin) return false;
+    if (origem === "varios" && busca.somente_linkedin) return false;
+    return true;
+  });
+}
+
+function renderLista() {
+  const visiveis = buscasVisiveis();
+  lista.replaceChildren();
+  document.getElementById("contagem-buscas").textContent = `${visiveis.length} de ${buscas.length}`;
+  document.getElementById("vazio-buscas").hidden = buscas.length > 0;
+  document.getElementById("vazio-buscas").textContent = buscas.length
+    ? "Nenhuma busca passa neste filtro."
+    : "Nenhuma busca gravada. Use o formulário para consultar a API da porta 4000.";
+  document.getElementById("vazio-buscas").hidden = visiveis.length > 0;
+  visiveis.forEach((busca) => {
+    const tr = document.createElement("tr");
+    if (aberta && aberta.id === busca.id) tr.className = "selecionada";
+    tr.append(el("td", String(busca.id)));
+    const info = el("td");
+    info.append(el("strong", busca.keywords || "Sem cargo"));
+    const meta = el("div", null, "muted");
+    meta.textContent = [
+      busca.location,
+      busca.somente_linkedin ? "só LinkedIn" : (busca.sites || ""),
+      busca.is_remote ? "remoto: sim" : "remoto: não",
+      busca.job_type ? (TIPOS[busca.job_type] || busca.job_type) : ""
+    ].filter(Boolean).join(" · ");
+    info.append(meta);
+    if (!busca.ok && busca.erro) info.append(el("div", busca.erro, "muted"));
+    tr.append(info);
+    const qtd = el("td");
+    qtd.append(el("span", busca.ok ? "pronta" : "erro", `badge ${busca.ok ? "ok" : "erro"}`));
+    qtd.append(document.createTextNode(` ${busca.quantidade}`));
+    tr.append(qtd);
+    tr.append(el("td", dataCurta(busca.atualizado_em || busca.criado_em)));
+    const acoes = el("td");
+    const box = el("div", null, "acoes");
+    const ver = el("button", "Ver", "secondary");
+    ver.type = "button";
+    ver.addEventListener("click", () => abrir(busca.id));
+    const editar = el("button", "Editar", "secondary");
+    editar.type = "button";
+    editar.addEventListener("click", () => editarBusca(busca));
+    const apagar = el("button", "Apagar", "copper");
+    apagar.type = "button";
+    apagar.addEventListener("click", () => excluir(busca));
+    box.append(ver, editar, apagar);
+    acoes.append(box);
+    tr.append(acoes);
+    lista.append(tr);
+  });
+}
+
+function opcoes(select, valores, atual) {
+  const valor = atual ?? select.value;
+  select.replaceChildren(el("option", "Todos"));
+  select.firstChild.value = "";
+  valores.forEach((item) => {
+    const option = el("option", item || "(vazio)");
+    option.value = item;
+    select.append(option);
+  });
+  select.value = [...select.options].some((option) => option.value === valor) ? valor : "";
+}
+
+function prepararFiltrosVaga(jobs) {
+  const sites = [...new Set(jobs.map((vaga) => textoDe(vaga.site)).filter(Boolean))].sort();
+  const tipos = [...new Set(jobs.map((vaga) => textoDe(vaga.job_type)).filter(Boolean))].sort();
+  const campos = [...new Set(jobs.flatMap((vaga) => Object.keys(vaga)))].sort();
+  opcoes(document.getElementById("filtro-site"), sites);
+  const tipo = document.getElementById("filtro-tipo");
+  opcoes(tipo, tipos);
+  [...tipo.options].forEach((option) => {
+    if (option.value && TIPOS[option.value]) option.textContent = TIPOS[option.value];
+  });
+  const campo = document.getElementById("filtro-campo");
+  const escolhido = campo.value;
+  campo.replaceChildren(el("option", "Qualquer campo acima"));
+  campo.firstChild.value = "";
+  campos.forEach((nome) => {
+    const option = el("option", NOMES[nome] || nome);
+    option.value = nome;
+    campo.append(option);
+  });
+  campo.value = [...campo.options].some((option) => option.value === escolhido) ? escolhido : "";
+}
+
+function vagaPassa(vaga) {
+  const q = document.getElementById("filtro-vaga").value.trim().toLowerCase();
+  const site = document.getElementById("filtro-site").value;
+  const tipo = document.getElementById("filtro-tipo").value;
+  const remoto = document.getElementById("filtro-remoto-vaga").value;
+  const salarioFiltro = document.getElementById("filtro-salario").value;
+  const campo = document.getElementById("filtro-campo").value;
+  const campoValor = document.getElementById("filtro-campo-valor").value.trim().toLowerCase();
+  if (q) {
+    const tudo = Object.values(vaga).map(textoDe).join(" ").toLowerCase();
+    if (!tudo.includes(q)) return false;
+  }
+  if (site && textoDe(vaga.site) !== site) return false;
+  if (tipo && textoDe(vaga.job_type) !== tipo) return false;
+  if (remoto === "sim" && !vaga.is_remote) return false;
+  if (remoto === "nao" && vaga.is_remote) return false;
+  const temSalario = vaga.min_amount != null || vaga.max_amount != null;
+  if (salarioFiltro === "com" && !temSalario) return false;
+  if (salarioFiltro === "sem" && temSalario) return false;
+  if (campo && campoValor && !textoDe(vaga[campo]).toLowerCase().includes(campoValor)) return false;
+  return true;
+}
+
+function vagasDaAberta() {
+  const jobs = aberta && aberta.saida && Array.isArray(aberta.saida.jobs) ? aberta.saida.jobs : [];
+  return jobs.filter((vaga) => vaga && typeof vaga === "object");
+}
+
+function renderVagas() {
+  const painel = document.getElementById("painel-vagas");
+  if (!aberta) {
+    painel.hidden = true;
+    return;
+  }
+  painel.hidden = false;
+  const jobs = vagasDaAberta();
+  const visiveis = jobs.filter(vagaPassa);
+  document.getElementById("titulo-vagas").textContent = aberta.pedido.keywords || "Vagas";
+  document.getElementById("caminho-vagas").textContent = aberta.erro || aberta.upstream_path || "";
+  document.getElementById("contagem-vagas").textContent = `${visiveis.length} de ${jobs.length}`;
+  const acoes = document.getElementById("acoes-vagas");
+  acoes.replaceChildren();
+  const json = el("a", "Baixar JSON", "button secondary");
+  json.href = aberta.downloads.json;
+  const csv = el("a", "Baixar CSV", "button secondary");
+  csv.href = aberta.downloads.csv;
+  const filtrado = el("button", "Baixar CSV do filtro", "secondary");
+  filtrado.type = "button";
+  filtrado.addEventListener("click", baixarFiltradas);
+  acoes.append(json, csv, filtrado);
+
+  const corpo = document.getElementById("vagas");
+  corpo.replaceChildren();
+  document.getElementById("vazio-vagas").hidden = visiveis.length > 0;
+  visiveis.forEach((vaga) => {
+    const tr = document.createElement("tr");
+    const cargo = el("td");
+    cargo.append(el("strong", vaga.title || "Sem título"));
+    if (vaga.job_type) cargo.append(el("div", TIPOS[vaga.job_type] || vaga.job_type, "muted"));
+    tr.append(cargo);
+    tr.append(el("td", vaga.company || "—"));
+    const local = el("td", vaga.location || "—");
+    if (vaga.is_remote) local.append(document.createElement("br"), el("span", "remota", "badge remote sim"));
+    tr.append(local);
+    tr.append(el("td", vaga.site || "—"));
+    const quando = el("td");
+    quando.append(document.createTextNode(vaga.date_posted || "—"));
+    const valor = salario(vaga);
+    if (valor) quando.append(el("div", valor, "muted"));
+    tr.append(quando);
+    const acao = el("td");
+    const botao = el("button", "Tudo", "secondary");
+    botao.type = "button";
+    const extra = document.createElement("tr");
+    extra.hidden = true;
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
+    cell.append(detalheVaga(vaga));
+    extra.append(cell);
+    botao.addEventListener("click", () => {
+      extra.hidden = !extra.hidden;
+      botao.textContent = extra.hidden ? "Tudo" : "Fechar";
+    });
+    const link = vaga.job_url_direct || vaga.job_url;
+    if (typeof link === "string" && link.startsWith("http")) {
+      const ancora = el("a", "Abrir", "button");
+      ancora.href = link;
+      ancora.target = "_blank";
+      ancora.rel = "noopener";
+      acao.append(el("div", null, "acoes"));
+      acao.firstChild.append(botao, ancora);
+    } else {
+      acao.append(botao);
+    }
+    tr.append(acao);
+    corpo.append(tr, extra);
+  });
+}
+
+function detalheVaga(vaga) {
+  const box = el("div", null, "detalhe");
+  const listaCampos = el("dl");
+  Object.keys(vaga).sort().forEach((chave) => {
+    listaCampos.append(el("dt", NOMES[chave] || chave));
+    listaCampos.append(el("dd", textoDe(vaga[chave]) || "—"));
+  });
+  box.append(listaCampos);
+  return box;
+}
+
+function baixarFiltradas() {
+  const jobs = vagasDaAberta().filter(vagaPassa);
+  const colunas = [...new Set(jobs.flatMap((vaga) => Object.keys(vaga)))];
+  const linhas = [colunas.join(",")];
+  jobs.forEach((vaga) => {
+    linhas.push(colunas.map((coluna) => `"${textoDe(vaga[coluna]).replaceAll('"', '""').replaceAll("\n", " ")}"`).join(","));
+  });
+  const blob = new Blob([linhas.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `busca-${aberta.id}-filtrada.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function carregarLista() {
+  const resposta = await fetch("/buscas");
+  const data = await resposta.json();
+  buscas = data.buscas || [];
+  renderLista();
+}
+
+async function abrir(id) {
+  mostrarAviso("");
+  const resposta = await fetch(`/buscas/${id}`);
+  const data = await resposta.json();
+  if (!resposta.ok) {
+    mostrarAviso(detalheErro(data));
+    return;
+  }
+  aberta = data;
+  prepararFiltrosVaga(vagasDaAberta());
+  renderLista();
+  renderVagas();
+  document.getElementById("painel-vagas").scrollIntoView({ block: "nearest" });
+}
+
+function editarBusca(busca) {
+  aplicarPedido(busca.pedido || busca);
+  modoFormulario(busca.id);
+  mostrarAviso("");
+  document.getElementById("form-busca").scrollIntoView({ block: "nearest" });
+}
+
+async function excluir(busca) {
+  const cargo = busca.keywords || `busca ${busca.id}`;
+  if (!window.confirm(`Apagar a busca "${cargo}" e as vagas gravadas?`)) return;
+  const resposta = await fetch(`/buscas/${busca.id}`, { method: "DELETE" });
+  if (!resposta.ok && resposta.status !== 204) {
+    mostrarAviso(detalheErro(await resposta.json().catch(() => null)));
+    return;
+  }
+  if (aberta && aberta.id === busca.id) {
+    aberta = null;
+    renderVagas();
+  }
+  if (editandoId === busca.id) {
+    aplicarPedido(null);
+    modoFormulario(null);
+  }
+  await carregarLista();
+}
+
+async function salvar(event) {
+  event.preventDefault();
+  const pedido = lerPedido();
+  if (!pedido.keywords) {
+    mostrarAviso("Informe o cargo ou a tecnologia.");
+    return;
+  }
+  if (!pedido.somente_linkedin && !pedido.sites) {
+    mostrarAviso("Marque ao menos um site ou escolha somente LinkedIn.");
+    return;
+  }
+  const botao = document.getElementById("salvar");
+  botao.disabled = true;
+  mostrarAviso(editandoId ? "Atualizando esta busca na API de vagas…" : "Consultando a API de vagas. Isso pode levar alguns minutos.");
+  try {
+    const resposta = await fetch(editandoId ? `/buscas/${editandoId}` : "/buscas", {
+      method: editandoId ? "PUT" : "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(pedido)
+    });
+    const data = await resposta.json();
+    if (!resposta.ok) {
+      mostrarAviso(detalheErro(data));
+      return;
+    }
+    aberta = data;
+    prepararFiltrosVaga(vagasDaAberta());
+    modoFormulario(null);
+    mostrarAviso(data.aviso || "");
+    await carregarLista();
+    renderVagas();
+  } catch (error) {
+    mostrarAviso("Não foi possível concluir a busca.");
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function carregarConexao() {
+  const resposta = await fetch("/conexao");
+  const data = await resposta.json();
+  document.getElementById("jobspy-host").value = data.host || "";
+  document.getElementById("jobspy-port").value = data.port || "";
+  document.getElementById("conexao-atual").textContent = data.url ? `O cliente chama ${data.url}` : "";
+}
+
+async function salvarConexao(event) {
+  event.preventDefault();
+  const botao = document.getElementById("salvar-conexao");
+  botao.disabled = true;
+  try {
+    const resposta = await fetch("/conexao", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        host: document.getElementById("jobspy-host").value.trim(),
+        port: Number(document.getElementById("jobspy-port").value)
+      })
+    });
+    const data = await resposta.json();
+    if (!resposta.ok) {
+      mostrarAviso(detalheErro(data));
+      return;
+    }
+    document.getElementById("conexao-atual").textContent = `O cliente chama ${data.url}`;
+    mostrarAviso("");
+    await estadoApi();
+  } catch (error) {
+    mostrarAviso("Não foi possível salvar o IP e a porta.");
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function estadoApi() {
+  const destino = document.getElementById("status-api");
+  try {
+    const resposta = await fetch("/jobspy/health");
+    const data = await resposta.json();
+    const onde = data.jobspy_api ? `${data.jobspy_api}: ` : "";
+    destino.replaceChildren(document.createTextNode(`API de vagas em ${onde}`), el("b", data.ok ? "disponível" : "indisponível", data.ok ? "ok" : "erro"));
+  } catch (error) {
+    destino.textContent = "API de vagas: sem resposta";
+  }
+}
+
+["filtro-busca", "filtro-situacao", "filtro-remoto-busca", "filtro-origem"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", renderLista);
+  document.getElementById(id).addEventListener("change", renderLista);
+});
+["filtro-vaga", "filtro-site", "filtro-tipo", "filtro-remoto-vaga", "filtro-salario", "filtro-campo", "filtro-campo-valor"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", renderVagas);
+  document.getElementById(id).addEventListener("change", renderVagas);
+});
+document.getElementById("somente_linkedin").addEventListener("change", sincronizarLinkedin);
+["cidade", "estado"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", atualizarPreview);
+  document.getElementById(id).addEventListener("change", atualizarPreview);
+});
+document.querySelectorAll('input[name="remoto"]').forEach((input) => {
+  input.addEventListener("change", atualizarPreview);
+});
+document.getElementById("form-busca").addEventListener("submit", salvar);
+document.getElementById("form-conexao").addEventListener("submit", salvarConexao);
+document.getElementById("cancelar").addEventListener("click", () => {
+  aplicarPedido(null);
+  modoFormulario(null);
+  mostrarAviso("");
+});
+
+renderSites();
+renderEstados();
+atualizarPreview();
+carregarConexao().catch(() => mostrarAviso("Não foi possível ler o IP e a porta do JobSpy."));
+carregarLista().catch(() => mostrarAviso("Não foi possível carregar as buscas."));
+estadoApi();
+</script>
+</body>
+</html>

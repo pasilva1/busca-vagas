@@ -1,0 +1,29 @@
+services:
+  cliente-vagas:
+    build: .
+    container_name: cliente_vagas
+    ports:
+      - "4100:4100"
+    environment:
+      TZ: America/Recife
+      JOBSPY_HOST: ${JOBSPY_HOST:-192.168.1.8}
+      JOBSPY_PORT: ${JOBSPY_PORT:-4000}
+      DB_PATH: /data/buscas.db
+    volumes:
+      - cliente_vagas_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4100/health', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  cliente_vagas_data:

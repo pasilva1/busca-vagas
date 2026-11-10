@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+python-jobspy
+pandas
+python-multipart
+pydantic

@@ -1,0 +1,12 @@
+[Unit]
+Description=Painel visual de vagas do JobSpy
+After=network.target docker.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/giovanna/Documents/Backup/CONTAINERS/JOBSPY/painel/server.py
+WorkingDirectory=/home/giovanna/Documents/Backup/CONTAINERS/JOBSPY/painel
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target

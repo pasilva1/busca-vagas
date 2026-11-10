@@ -1,0 +1,11 @@
+/*
+!.gitignore
+!README.md
+!JOBSPY/
+!DOCKER_CLIENTE_VAGAS/
+
+JOBSPY/**/__pycache__/
+JOBSPY/**/*.py[cod]
+DOCKER_CLIENTE_VAGAS/**/__pycache__/
+DOCKER_CLIENTE_VAGAS/**/*.py[cod]
+**/.env
